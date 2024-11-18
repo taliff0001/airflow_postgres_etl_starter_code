@@ -1,0 +1,87 @@
+clean_csv1.csv
+clean_csv2.csv
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# C extensions
+*.so
+
+# Virtual environments
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Distribution / packaging
+build/
+dist/
+.eggs/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Install logs
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+.pytest_cache/
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+
+# PyInstaller
+*.manifest
+*.spec
+
+# Airflow logs and temporary files
+logs/
+tmp/
+airflow.db
+airflow-webserver.pid
+
+# Airflow configuration files
+unittests.cfg
+webserver_config.py
+
+# Airflow plugins
+plugins/
+
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints
+
+# IDE files
+.vscode/
+.idea/
+
+# MacOS files
+.DS_Store
+
+# System files
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Docker files
+*.log
+
+# Environment variables
+.env
+
+# Database files
+*.db
+
+# Ignore any custom configuration files that may contain sensitive information
+config.py
+secrets.py
