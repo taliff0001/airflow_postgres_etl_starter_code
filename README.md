@@ -1,6 +1,11 @@
-# **Airflow ETL Pipeline Project**
+# Airflow Pipeline Starter Code
 
-This project demonstrates an ETL (Extract, Transform, Load) pipeline using Apache Airflow, Docker, and PostgreSQL. The pipeline ingests two CSV files, performs data cleaning, merges the data, and stores the result in a PostgreSQL database.
+This is the starter code for my data engineering project from Fall of 2024.
+It demonstrates an ETL (Extract, Transform, Load) pipeline using Apache Airflow,
+Docker, and PostgreSQL. The pipeline ingests two CSV files, performs data cleaning,
+merges the data, and stores the result in a PostgreSQL database
+
+**Follow the instructions to clone the repository and start your own Apache Airflow project!**
 
 ## **Table of Contents**
 
