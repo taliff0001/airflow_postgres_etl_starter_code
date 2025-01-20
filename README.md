@@ -72,7 +72,7 @@ airflow_etl_project/
 Open your terminal and run:
 
 ```bash
-git clone https://github.com/yourusername/airflow_etl_project.git
+git clone https://github.com/taliff0001/airflow_postgres_etl_starter_code.git
 cd airflow_etl_project
 ```
 
