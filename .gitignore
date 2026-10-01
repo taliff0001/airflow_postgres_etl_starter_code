@@ -82,3 +82,6 @@ Desktop.ini
 # Ignore any custom configuration files that may contain sensitive information
 config.py
 secrets.py
+
+.env
+logs/

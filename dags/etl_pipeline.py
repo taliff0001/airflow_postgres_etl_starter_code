@@ -1,9 +1,8 @@
 from airflow import DAG
-from airflow.operators.python import PythonOperator
+from airflow.providers.standard.operators.python import PythonOperator
+from airflow.providers.postgres.hooks.postgres import PostgresHook
 import pendulum
 import pandas as pd
-import os
-from sqlalchemy import create_engine
 
 # Define default arguments for the DAG
 default_args = {
@@ -14,7 +13,7 @@ default_args = {
 with DAG(
     'csv_to_postgres_etl',
     default_args=default_args,
-    schedule_interval=None,
+    schedule=None,
     start_date=pendulum.datetime(2023, 1, 1, tz="UTC"),
     catchup=False,
 ) as dag:
@@ -47,8 +46,8 @@ with DAG(
         df1 = pd.read_csv('/opt/airflow/data/clean_csv1.csv')
         df2 = pd.read_csv('/opt/airflow/data/clean_csv2.csv')
         merged_df = pd.merge(df1, df2, on='id')
-        # Store the merged data into PostgreSQL
-        engine = create_engine('postgresql+psycopg2://airflow:airflow@postgres:5432/airflow')
+        # Store the merged data in the warehouse database (connection defined in docker-compose.yml)
+        engine = PostgresHook(postgres_conn_id='warehouse_db').get_sqlalchemy_engine()
         merged_df.to_sql('merged_data', engine, if_exists='replace', index=False)
         print("Data merged and stored in PostgreSQL.")
 
