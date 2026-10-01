@@ -1,255 +1,99 @@
-# Airflow Pipeline Starter Code
+# Airflow 3 + Postgres starter
 
-This is the starter code for my data engineering project from Fall of 2024 (See the finished project [here](https://github.com/taliff0001/cs_440_airflow_etl_pipeline_project)).
-It demonstrates an ETL (Extract, Transform, Load) pipeline using Apache Airflow,
-Docker, and PostgreSQL. The pipeline ingests two CSV files, performs data cleaning,
-merges the data, and stores the result in a PostgreSQL database
+A small, honest data pipeline stack you can stand up in one step: **Apache Airflow 3.3.2** (LocalExecutor)
+and **Postgres 17**, wired together with Docker Compose. It ships with a working CSV → Postgres ETL DAG
+and a series of hands-on tutorials built around real production failures.
 
-**Follow the instructions to clone the repository and start your own Apache Airflow project!**
+[![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/taliff0001/airflow_postgres_etl_starter_code?quickstart=1)
 
-## **Table of Contents**
+## Quick start
 
-- [Prerequisites](#prerequisites)
-- [Project Structure](#project-structure)
-- [Setup Instructions](#setup-instructions)
-  - [1. Clone the Repository](#1-clone-the-repository)
-  - [2. Install Docker Desktop](#2-install-docker-desktop)
-  - [3. Generate a Fernet Key](#3-generate-a-fernet-key)
-  - [4. Create a `.env` File](#4-create-a-env-file)
-  - [5. Initialize Airflow](#5-initialize-airflow)
-  - [6. Start the Services](#6-start-the-services)
-- [Running the ETL Pipeline](#running-the-etl-pipeline)
-  - [1. Access the Airflow Web UI](#1-access-the-airflow-web-ui)
-  - [2. Enable and Trigger the DAG](#2-enable-and-trigger-the-dag)
-- [Verifying the Results](#verifying-the-results)
-- [Stopping the Services](#stopping-the-services)
-- [Notes](#notes)
-- [Troubleshooting](#troubleshooting)
-- [License](#license)
+**In the browser (nothing to install):** click the Codespaces badge above. GitHub builds a cloud machine,
+runs the setup, and opens the Airflow UI on a forwarded port. First build takes a few minutes.
 
----
-
-## **Prerequisites**
-
-- **Docker Desktop**: Install Docker Desktop for your operating system:
-  - [Docker Desktop for Windows](https://docs.docker.com/desktop/windows/install/)
-  - [Docker Desktop for Mac](https://docs.docker.com/desktop/mac/install/)
-  - [Docker Engine for Linux](https://docs.docker.com/engine/install/)
-
-- **Command Line Interface**: Use a terminal application (Command Prompt, PowerShell, Terminal, etc.)
-
-- **Python 3.x**: Required for generating the Fernet key (if not using the one provided).
-
----
-
-## **Project Structure**
-
-```
-airflow_etl_project/
-├── dags/
-│   └── etl_pipeline.py
-├── data/
-│   ├── csv1.csv
-│   └── csv2.csv
-├── .env
-├── .gitignore
-├── docker-compose.yml
-├── README.md
-```
-
-- **dags/**: Contains the Airflow DAG (`etl_pipeline.py`).
-- **data/**: Contains the sample CSV files (`csv1.csv` and `csv2.csv`).
-- **.env**: Environment variables file containing the Fernet key.
-- **docker-compose.yml**: Docker Compose configuration file.
-- **README.md**: Project documentation (this file).
-
----
-
-## **Setup Instructions**
-
-### **1. Clone the Repository**
-
-Open your terminal and run:
+**On your machine** (needs [Docker Desktop](https://www.docker.com/products/docker-desktop/) running):
 
 ```bash
 git clone https://github.com/taliff0001/airflow_postgres_etl_starter_code.git
-cd airflow_etl_project
+cd airflow_postgres_etl_starter_code
+./setup.sh
 ```
 
-### **2. Install Docker Desktop**
+Then open http://localhost:8080 and sign in with `admin` / `admin`.
 
-- **Windows and Mac**: Download and install [Docker Desktop](https://www.docker.com/products/docker-desktop).
-- **Linux**: Follow the [Docker Engine installation guide](https://docs.docker.com/engine/install/).
+`setup.sh` creates your `.env` (generating the Fernet key and JWT secret), checks that the ports are free,
+starts the containers, and waits until every health check passes. Run it again any time; it's safe.
 
-Ensure Docker is running before proceeding.
+| | |
+|---|---|
+| Stop the stack | `docker compose down` |
+| Wipe everything (containers, volumes, logs) and start fresh | `./setup.sh --clean` |
+| Reset the tutorial tables | `./setup.sh --reset` |
+| Postgres from your laptop | `localhost:5433`, user `airflow`, password `airflow`, database `warehouse` |
 
-### **3. Generate a Fernet Key**
+## Tutorials
 
-Airflow requires a Fernet key for encrypting sensitive data.
+| # | Problem | What you build |
+|---|---|---|
+| [01](tutorials/01-idempotent-loads/) | A pipeline retries after a failure and duplicates half the table | An idempotent load, fixed two ways: key + `ON CONFLICT`, and staging + `MERGE` |
 
-#### **Option 1: Use the Provided Key**
+Each tutorial starts with a real failure someone described on LinkedIn, reproduces it on this stack, and
+fixes it, with a checkpoint after every step so you know you're on track.
 
-A sample Fernet key is included in the `.env` file. You can use it as is.
+## What's in the stack
 
-#### **Option 2: Generate Your Own Key**
+```
+.
+├── docker-compose.yml   Postgres + Airflow (init, API server, scheduler, DAG processor)
+├── setup.sh             one-command setup, --reset, --clean
+├── .env.example         the settings you can change (ports, login, Airflow version)
+├── init-db/             SQL that Postgres runs on first start (creates the `warehouse` database)
+├── dags/                your DAGs; the folder is mounted into Airflow, edits show up live
+├── data/                sample CSVs for the starter ETL DAG
+└── tutorials/           one folder per tutorial
+```
 
-If you prefer to generate a new Fernet key:
+Two databases live in the one Postgres container: `airflow` (Airflow's own metadata) and `warehouse`
+(yours). DAGs reach `warehouse` through an Airflow Connection named `warehouse_db`, defined in
+`docker-compose.yml`, so no DAG ever hard-codes a connection string.
 
-1. Run the following command:
+### The starter DAG
 
-   ```bash
-   python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
-   ```
-
-2. Copy the generated key.
-
-### **4. Create a `.env` File**
-
-Create a `.env` file in the project root directory (if not already present):
+`csv_to_postgres_etl` reads two CSVs from `data/`, cleans them with pandas, merges them, and writes
+`merged_data` to the `warehouse` database. Trigger it from the UI, then look at the result:
 
 ```bash
-touch .env
+docker compose exec postgres psql -U airflow -d warehouse -c "SELECT * FROM merged_data;"
 ```
 
-Add the following content to the `.env` file:
+### Airflow 3 notes
 
-```dotenv
-AIRFLOW__CORE__FERNET_KEY=YOUR_GENERATED_FERNET_KEY
-```
+If you last used Airflow 2, three things in this stack are new: the webserver is now an **API server**
+(FastAPI), the **DAG processor** is a separate required service, and tasks no longer talk to the
+metadata database; they go through the API server. DAGs use the Airflow 3 Task SDK imports
+(`from airflow.sdk import DAG, task`), and `schedule_interval` is now `schedule`.
 
-- Replace `YOUR_GENERATED_FERNET_KEY` with the key you generated or the one provided.
+## Settings
 
-### **5. Initialize Airflow**
+Everything adjustable is in `.env` (created from `.env.example` on first run):
 
-Run the following commands to set up Airflow:
+| Variable | Default | |
+|---|---|---|
+| `AIRFLOW_PORT` | `8080` | host port for the UI |
+| `POSTGRES_PORT` | `5433` | host port for Postgres (5433 so a local Postgres on 5432 doesn't collide) |
+| `AIRFLOW_USER` / `AIRFLOW_PASSWORD` | `admin` / `admin` | UI login |
+| `AIRFLOW_VERSION` | `3.3.2` | image tag |
+| `_PIP_ADDITIONAL_REQUIREMENTS` | empty | extra packages a DAG needs |
 
-```bash
-# Set the Airflow home directory
-export AIRFLOW_HOME=$(pwd)
+## Troubleshooting
 
-# Initialize the Airflow database
-docker-compose run airflow airflow db init
+- **"Port 8080 is already in use."** Change `AIRFLOW_PORT` in `.env` and re-run `./setup.sh`.
+- **A DAG doesn't appear.** The folder is rescanned every 10 s. Still missing after that:
+  `docker compose exec airflow-dag-processor airflow dags list-import-errors`
+- **Something's wedged.** `./setup.sh --clean` rebuilds from nothing.
+- **Linux: files in `logs/` owned by root.** `setup.sh` sets `AIRFLOW_UID` in `.env` automatically; if you
+  created `.env` by hand, add `AIRFLOW_UID=$(id -u)`.
 
-# Create an admin user
-docker-compose run airflow airflow users create \
-    --username admin \
-    --firstname Admin \
-    --lastname User \
-    --role Admin \
-    --email admin@example.com \
-    --password admin
-```
+## License
 
-### **6. Start the Services**
-
-Start the Airflow and PostgreSQL services using Docker Compose:
-
-```bash
-docker-compose up -d
-```
-
----
-
-## **Running the ETL Pipeline**
-
-### **1. Access the Airflow Web UI**
-
-Open your web browser and navigate to:
-
-```
-http://localhost:8080
-```
-
-- **Username**: `admin`
-- **Password**: `admin`
-
-### **2. Enable and Trigger the DAG**
-
-1. In the Airflow web UI, locate the DAG named `csv_to_postgres_etl`.
-2. Toggle the DAG to **On** (the switch should turn blue).
-3. Click the **Trigger DAG** button (a play icon) to manually start the pipeline.
-
----
-
-## **Verifying the Results**
-
-To confirm that the data has been successfully processed and stored:
-
-1. **Access the PostgreSQL Container**:
-
-   ```bash
-   docker exec -it $(docker ps -qf "name=postgres") psql -U airflow -d airflow
-   ```
-
-2. **Query the `merged_data` Table**:
-
-   ```sql
-   SELECT * FROM merged_data;
-   ```
-
-3. **Exit the PostgreSQL Shell**:
-
-   ```sql
-   \q
-   ```
-
----
-
-## **Stopping the Services**
-
-When you're done, you can stop the Docker containers:
-
-```bash
-docker-compose down
-```
-
----
-
-## **Notes**
-
-- **Data Directory**: The `data` directory contains the sample CSV files. These are mounted into the Airflow containers.
-
-- **Environment Variables**: The `.env` file stores sensitive information like the Fernet key. Do not commit this file to version control if it contains sensitive data.
-
-- **Docker Volumes**: Docker volumes are used to persist data for PostgreSQL and Airflow.
-
----
-
-## **Troubleshooting**
-
-- **Docker Permission Issues (Linux)**:
-
-  If you encounter permission issues on Linux, you may need to manage Docker as a non-root user. Follow the [post-installation steps for Linux](https://docs.docker.com/engine/install/linux-postinstall/).
-
-- **Port Conflicts**:
-
-  Ensure that ports `5432` (PostgreSQL) and `8080` (Airflow web UI) are not in use by other applications.
-
-- **Environment Variables Not Loaded**:
-
-  If the Fernet key is not being recognized, make sure that the `.env` file is correctly formatted and that Docker Compose is loading it.
-
-- **Airflow UI Not Accessible**:
-
-  - Check if the containers are running:
-
-    ```bash
-    docker-compose ps
-    ```
-
-  - View logs for any errors:
-
-    ```bash
-    docker-compose logs airflow
-    docker-compose logs airflow_scheduler
-    ```
-
----
-
-## **License**
-
-This project is licensed under the MIT License.
-
----
-
-**Enjoy using the Airflow ETL Pipeline Project! If you have any questions or issues, feel free to reach out.**
+MIT

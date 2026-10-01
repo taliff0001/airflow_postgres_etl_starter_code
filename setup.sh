@@ -46,7 +46,8 @@ if [[ "$MODE" == "--clean" ]]; then
 fi
 
 if [[ "$MODE" == "--reset" ]]; then
-  fail "--reset isn't wired up yet (it arrives with the tutorial)."
+  [[ -n "$(docker compose ps -q 2>/dev/null)" ]] || fail "The stack isn't running. Run ./setup.sh first."
+  exec tutorials/01-idempotent-loads/reset.sh
 fi
 
 # 4. Port check (only when nothing from this project is running yet)
