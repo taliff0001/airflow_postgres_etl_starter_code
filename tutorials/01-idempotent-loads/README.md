@@ -7,8 +7,8 @@ This tutorial reproduces that failure on your machine, then fixes it two ways. T
 building toward is **idempotency**: a load that produces the same result no matter how many times it
 runs. Retries are normal; a pipeline has to know how to run again safely.
 
-It was prompted by a LinkedIn post from Madhuri P. (Sr. Big Data Engineer): a pipeline that processed
-a million records, failed near the end, was retried, and created duplicates. <!-- TODO: link -->
+It was prompted by [a LinkedIn post from Madhuri P.](https://www.linkedin.com/posts/madhuri91_dataengineering-datapipelines-etl-share-7510773223597318144-sRcm/) (Sr. Big Data Engineer): a pipeline that
+processed a million records, failed near the end, was retried, and created duplicates.
 
 **Time:** about 45 minutes. **You need:** this repo's stack running (`./setup.sh` from the repo root)
 and the Airflow UI open at http://localhost:8080 (admin / admin).
@@ -184,4 +184,8 @@ a production pipeline should not only know how to run. It should know how to saf
 - *The DAG isn't in the UI.* Wait ten seconds. If it's still missing:
   `docker compose exec airflow-dag-processor airflow dags list-import-errors`
 - *`ALTER TABLE ... ADD PRIMARY KEY` fails.* The table still has duplicates. Run `./setup.sh --reset` first.
+- *The UI shows your variable, but the terminal doesn't see it (or `check.sh` stays at 0 after a run).* You may
+  be looking at a different Airflow. In Codespaces, open the UI from the **Ports** tab (port 8080, globe icon);
+  `localhost:8080` in your browser could be a stack running on your own machine. (The CLI prints "created"
+  even when it updates an existing variable, so that message alone doesn't mean anything is wrong.)
 - *`MERGE` is a syntax error.* You're on Postgres older than 15. This stack pins 17; run `./setup.sh --clean`.
