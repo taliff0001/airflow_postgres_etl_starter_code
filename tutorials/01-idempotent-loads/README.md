@@ -1,4 +1,4 @@
-# Tutorial 01: The retry that duplicated everything
+# Tutorial 01: The retry that duplicated half the table
 
 A pipeline fails near the end. Airflow retries it. The retry succeeds, the run turns green, and
 nobody notices that half the table is now in there twice.
